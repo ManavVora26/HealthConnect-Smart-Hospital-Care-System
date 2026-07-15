@@ -2,18 +2,17 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
+// Class to establish a connection with the MySQL database
 public class DBConnection {
+
     String url = "jdbc:mysql://localhost:3307/HealthConnect";
     String username = "root";
     String password = "";
 
-    public Connection getConnection() {
+    // Method to create and return a database connection
+    public Connection getConnection() throws SQLException {
         Connection conn = null;
-        try {
-            conn = DriverManager.getConnection(url, username, password);
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        conn = DriverManager.getConnection(url, username, password);
         return conn;
     }
 }
