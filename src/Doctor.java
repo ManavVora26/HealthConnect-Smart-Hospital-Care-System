@@ -298,7 +298,7 @@ public class Doctor extends User {
                 DBConnection.initialize();
             }
             PreparedStatement ps = DBConnection.conn.prepareStatement(
-                    "SELECT f.followup_id, f.patient_id, p.name AS patient_name, f.remarks, f.next_visit, f.status " +
+                    "SELECT f.followup_id, f.patient_id, CONCAT(p.first_name, ' ', p.last_name) AS patient_name, f.remarks, f.next_visit, f.status " +
                             "FROM follow_up f " +
                             "JOIN patients p ON f.patient_id = p.patient_id " +
                             "WHERE f.doctor_id = ? " +
@@ -344,7 +344,7 @@ public class Doctor extends User {
 
             // Verify this follow-up exists and belongs to this doctor
             PreparedStatement psCheck = DBConnection.conn.prepareStatement(
-                    "SELECT f.*, p.name AS patient_name FROM follow_up f JOIN patients p ON f.patient_id = p.patient_id WHERE f.followup_id = ? AND f.doctor_id = ?");
+                    "SELECT f.*, CONCAT(p.first_name, ' ', p.last_name) AS patient_name FROM follow_up f JOIN patients p ON f.patient_id = p.patient_id WHERE f.followup_id = ? AND f.doctor_id = ?");
             psCheck.setInt(1, followUpId);
             psCheck.setInt(2, doctorId);
             ResultSet rsCheck = psCheck.executeQuery();

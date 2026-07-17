@@ -222,14 +222,13 @@ public class Main {
         System.out.println("3.  📝 Create Medical Report");
         System.out.println("4.  💊 Create Prescription & Add Medicines");
         System.out.println("5.  🥗 Create Diet Plan");
-        System.out.println("6.  💬 Reply to Patient Chat");
-        System.out.println("7.  💬 View All Follow-ups & Reply");
-        System.out.println("8.  🚦 View Live Waiting Queue");
-        System.out.println("9.  ⏰ Update Available Hours");
-        System.out.println("10. 👤 Update Profile");
-        System.out.println("11. 🔐 Change Password");
-        System.out.println("12. 🚪 Logout");
-        System.out.print("👉 Enter your choice (1-12): ");
+        System.out.println("6.  💬 View All Follow-ups & Reply");
+        System.out.println("7.  🚦 View Live Waiting Queue");
+        System.out.println("8.  ⏰ Update Available Hours");
+        System.out.println("9.  👤 Update Profile");
+        System.out.println("10. 🔐 Change Password");
+        System.out.println("11. 🚪 Logout");
+        System.out.print("👉 Enter your choice (1-11): ");
         String choice = sc.nextLine().trim();
 
         switch (choice) {
@@ -249,15 +248,12 @@ public class Main {
                 new DietPlan().generateDiet();
                 break;
             case "6":
-                d.replyPatient();
-                break;
-            case "7":
                 d.showFollowUpsAndReply();
                 break;
-            case "8":
+            case "7":
                 new QueueManager().displayQueue();
                 break;
-            case "9":
+            case "8":
                 System.out.print("👉 Enter availability string (e.g. Mon-Fri 9AM-2PM): ");
                 String avail = sc.nextLine();
                 if (DBConnection.conn == null || DBConnection.conn.isClosed()) {
@@ -270,18 +266,18 @@ public class Main {
                 ps.close();
                 System.out.println("✅ Availability updated successfully.");
                 break;
-            case "10":
+            case "9":
                 d.updateProfile();
                 break;
-            case "11":
+            case "10":
                 d.changePassword();
                 break;
-            case "12":
+            case "11":
                 d.logout();
                 loggedInUser = null;
                 break;
             default:
-                System.out.println("⚠️ Invalid option. Please choose 1-12.");
+                System.out.println("⚠️ Invalid option. Please choose 1-11.");
         }
     }
 
