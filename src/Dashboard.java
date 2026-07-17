@@ -65,6 +65,9 @@ public class Dashboard {
             }
             rs3.close();
             ps3.close();
+
+            // Display live queue status for next appointment
+            p.displayQueueStatus();
         }
         System.out.println("========================================================");
     }

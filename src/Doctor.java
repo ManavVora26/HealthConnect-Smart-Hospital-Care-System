@@ -403,4 +403,39 @@ public class Doctor extends User {
             psCheck.close();
         }
     }
+
+    public void showNextAppointment() throws Exception {
+        int doctorId = getDoctorId();
+        if (DBConnection.conn == null || DBConnection.conn.isClosed()) {
+            DBConnection.initialize();
+        }
+        PreparedStatement ps = DBConnection.conn.prepareStatement(
+                "SELECT a.appointment_id, a.patient_id, CONCAT(p.first_name, ' ', p.last_name) AS patient_name, " +
+                        "a.appointment_date, a.appointment_time, a.status, a.token_number, a.priority, a.remarks " +
+                        "FROM appointments a " +
+                        "JOIN patients p ON a.patient_id = p.patient_id " +
+                        "WHERE a.doctor_id = ? AND a.status = 'Booked' AND a.appointment_date >= CURDATE() " +
+                        "ORDER BY a.appointment_date ASC, a.token_number ASC"
+        );
+        ps.setInt(1, doctorId);
+        ResultSet rs = ps.executeQuery();
+        System.out.println("\n📅 --- Next / Upcoming Appointments (Sorted by Token Number) ---");
+        boolean found = false;
+        while (rs.next()) {
+            found = true;
+            System.out.println("🎟️ Token Number  : " + rs.getInt("token_number"));
+            System.out.println("🔑 Appointment ID: " + rs.getInt("appointment_id"));
+            System.out.println("👤 Patient Name  : " + rs.getString("patient_name") + " (ID: " + rs.getInt("patient_id") + ")");
+            System.out.println("📅 Date          : " + rs.getString("appointment_date"));
+            System.out.println("⏰ Time          : " + rs.getString("appointment_time"));
+            System.out.println("🚨 Priority      : " + rs.getString("priority"));
+            System.out.println("💬 Remarks       : " + rs.getString("remarks"));
+            System.out.println("----------------------------------------------------------------");
+        }
+        if (!found) {
+            System.out.println("📭 No upcoming booked appointments found.");
+        }
+        rs.close();
+        ps.close();
+    }
 }

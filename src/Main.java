@@ -129,8 +129,9 @@ public class Main {
         System.out.println("14. 💳 Check / Pay Bills");
         System.out.println("15. 👤 Update Profile");
         System.out.println("16. 🔐 Change Password");
-        System.out.println("17. 🚪 Logout");
-        System.out.print("👉 Enter your choice (1-17): ");
+        System.out.println("17. 🎟️ Check Live Queue Status");
+        System.out.println("18. 🚪 Logout");
+        System.out.print("👉 Enter your choice (1-18): ");
         String choice = sc.nextLine().trim();
 
         switch (choice) {
@@ -204,11 +205,14 @@ public class Main {
                 p.changePassword();
                 break;
             case "17":
+                p.displayQueueStatus();
+                break;
+            case "18":
                 p.logout();
                 loggedInUser = null;
                 break;
             default:
-                System.out.println("⚠️ Invalid option. Please choose 1-17.");
+                System.out.println("⚠️ Invalid option. Please choose 1-18.");
         }
     }
 
@@ -227,8 +231,9 @@ public class Main {
         System.out.println("8.  ⏰ Update Available Hours");
         System.out.println("9.  👤 Update Profile");
         System.out.println("10. 🔐 Change Password");
-        System.out.println("11. 🚪 Logout");
-        System.out.print("👉 Enter your choice (1-11): ");
+        System.out.println("11. 📅 Show Next Appointment");
+        System.out.println("12. 🚪 Logout");
+        System.out.print("👉 Enter your choice (1-12): ");
         String choice = sc.nextLine().trim();
 
         switch (choice) {
@@ -245,7 +250,7 @@ public class Main {
                 d.createPrescription();
                 break;
             case "5":
-                new DietPlan().generateDiet();
+                d.createDietPlan();
                 break;
             case "6":
                 d.showFollowUpsAndReply();
@@ -273,11 +278,14 @@ public class Main {
                 d.changePassword();
                 break;
             case "11":
+                d.showNextAppointment();
+                break;
+            case "12":
                 d.logout();
                 loggedInUser = null;
                 break;
             default:
-                System.out.println("⚠️ Invalid option. Please choose 1-11.");
+                System.out.println("⚠️ Invalid option. Please choose 1-12.");
         }
     }
 

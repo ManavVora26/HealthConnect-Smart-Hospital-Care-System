@@ -334,4 +334,160 @@ public class Patient extends User {
     public void viewDashboard() throws Exception {
         new Dashboard().showPatientDashboard();
     }
+
+    public void displayQueueStatus() throws Exception {
+        int patientId = getPatientIdByUserId(this.userId);
+        if (patientId == 0) {
+            System.out.println("⚠️ Patient profile not found.");
+            return;
+        }
+
+        if (DBConnection.conn == null || DBConnection.conn.isClosed()) {
+            DBConnection.initialize();
+        }
+
+        // 1. Find next booked appointment
+        PreparedStatement ps = DBConnection.conn.prepareStatement(
+                "SELECT a.appointment_id, a.doctor_id, d.name AS doctor_name, d.availability AS doctor_avail, " +
+                        "a.appointment_date, a.appointment_time, a.token_number " +
+                        "FROM appointments a " +
+                        "JOIN doctors d ON a.doctor_id = d.doctor_id " +
+                        "WHERE a.patient_id = ? AND a.status = 'Booked' AND a.appointment_date >= CURDATE() " +
+                        "ORDER BY a.appointment_date ASC, a.appointment_time ASC LIMIT 1"
+        );
+        ps.setInt(1, patientId);
+        ResultSet rs = ps.executeQuery();
+        if (rs.next()) {
+            int appId = rs.getInt("appointment_id");
+            int doctorId = rs.getInt("doctor_id");
+            String doctorName = rs.getString("doctor_name");
+            String doctorAvail = rs.getString("doctor_avail");
+            java.sql.Date appDate = rs.getDate("appointment_date");
+            java.sql.Time appTime = rs.getTime("appointment_time");
+            int myToken = rs.getInt("token_number");
+
+            System.out.println("\n🎟️ --- Live Queue & Next Appointment Info ---");
+            System.out.println("👨‍⚕️ Doctor Name      : " + doctorName);
+            System.out.println("⏰ Doctor Hours      : " + (doctorAvail != null && !doctorAvail.isEmpty() ? doctorAvail : "Not Specified"));
+            System.out.println("📅 Appointment Date  : " + appDate);
+            System.out.println("⏰ Appointment Time  : " + appTime);
+            System.out.println("🎟️ Your Token Number : " + myToken);
+
+            // 2. Which token number is being treated currently
+            int treatedToken = -1;
+            PreparedStatement psTreated = DBConnection.conn.prepareStatement(
+                    "SELECT queue_number FROM queue WHERE doctor_id = ? AND status = 'In-progress' LIMIT 1"
+            );
+            psTreated.setInt(1, doctorId);
+            ResultSet rsTreated = psTreated.executeQuery();
+            if (rsTreated.next()) {
+                treatedToken = rsTreated.getInt("queue_number");
+            }
+            rsTreated.close();
+            psTreated.close();
+
+            if (treatedToken == -1) {
+                PreparedStatement psTreated2 = DBConnection.conn.prepareStatement(
+                        "SELECT t.token_number FROM tokens t JOIN appointments a ON t.appointment_id = a.appointment_id " +
+                                "WHERE a.doctor_id = ? AND t.status = 'Serving' LIMIT 1"
+                );
+                psTreated2.setInt(1, doctorId);
+                ResultSet rsTreated2 = psTreated2.executeQuery();
+                if (rsTreated2.next()) {
+                    treatedToken = rsTreated2.getInt("token_number");
+                }
+                rsTreated2.close();
+                psTreated2.close();
+            }
+
+            if (treatedToken != -1) {
+                System.out.println("🩺 Token Being Treated: " + treatedToken);
+            } else {
+                System.out.println("🩺 Token Being Treated: None (No patient is currently in treatment)");
+            }
+
+            // 3. How much left before me in queue
+            // Check if patient is in active queue
+            PreparedStatement psQueue = DBConnection.conn.prepareStatement(
+                    "SELECT queue_id, priority_level, arrival_time FROM queue WHERE patient_id = ? AND doctor_id = ? AND status = 'Waiting' LIMIT 1"
+            );
+            psQueue.setInt(1, patientId);
+            psQueue.setInt(2, doctorId);
+            ResultSet rsQueue = psQueue.executeQuery();
+            boolean inQueue = false;
+            int queueId = -1;
+            String priorityLevel = "";
+            java.sql.Timestamp arrivalTime = null;
+            if (rsQueue.next()) {
+                inQueue = true;
+                queueId = rsQueue.getInt("queue_id");
+                priorityLevel = rsQueue.getString("priority_level");
+                arrivalTime = rsQueue.getTimestamp("arrival_time");
+            }
+            rsQueue.close();
+            psQueue.close();
+
+            int peopleAhead = 0;
+            if (inQueue) {
+                PreparedStatement psAhead = DBConnection.conn.prepareStatement(
+                        "SELECT COUNT(*) FROM queue " +
+                                "WHERE doctor_id = ? AND status = 'Waiting' " +
+                                "AND (" +
+                                "  FIELD(priority_level, 'Emergency','Pregnant','Senior Citizen','Child','Disabled','Normal') < FIELD(?, 'Emergency','Pregnant','Senior Citizen','Child','Disabled','Normal') " +
+                                "  OR (" +
+                                "    FIELD(priority_level, 'Emergency','Pregnant','Senior Citizen','Child','Disabled','Normal') = FIELD(?, 'Emergency','Pregnant','Senior Citizen','Child','Disabled','Normal') " +
+                                "    AND arrival_time < ?" +
+                                "  )" +
+                                ")"
+                );
+                psAhead.setInt(1, doctorId);
+                psAhead.setString(2, priorityLevel);
+                psAhead.setString(3, priorityLevel);
+                psAhead.setTimestamp(4, arrivalTime);
+                ResultSet rsAhead = psAhead.executeQuery();
+                if (rsAhead.next()) {
+                    peopleAhead = rsAhead.getInt(1);
+                }
+                rsAhead.close();
+                psAhead.close();
+                System.out.println("🚶 People Ahead of You: " + peopleAhead + " (Active in live queue)");
+            } else {
+                PreparedStatement psAheadApp = DBConnection.conn.prepareStatement(
+                        "SELECT COUNT(*) FROM appointments " +
+                                "WHERE doctor_id = ? AND appointment_date = ? AND status = 'Booked' AND token_number < ?"
+                );
+                psAheadApp.setInt(1, doctorId);
+                psAheadApp.setDate(2, appDate);
+                psAheadApp.setInt(3, myToken);
+                ResultSet rsAheadApp = psAheadApp.executeQuery();
+                if (rsAheadApp.next()) {
+                    peopleAhead = rsAheadApp.getInt(1);
+                }
+                rsAheadApp.close();
+                psAheadApp.close();
+                System.out.println("🚶 Booked Appointments Ahead of You: " + peopleAhead + " (Not yet checked-in to active queue)");
+            }
+
+            // 4. Time left for that particular doctor
+            int waitingTime = 0;
+            if (inQueue && queueId != -1) {
+                PreparedStatement psTime = DBConnection.conn.prepareStatement("SELECT CalculateWaitingTime(?)");
+                psTime.setInt(1, queueId);
+                ResultSet rsTime = psTime.executeQuery();
+                if (rsTime.next()) {
+                    waitingTime = rsTime.getInt(1);
+                }
+                rsTime.close();
+                psTime.close();
+            } else {
+                waitingTime = (peopleAhead + 1) * 15; // fallback estimation: 15 mins per ahead patient + self
+            }
+            System.out.println("⏰ Estimated Waiting Time: " + waitingTime + " minutes");
+            System.out.println("----------------------------------------------");
+        } else {
+            System.out.println("📭 No upcoming booked appointments found.");
+        }
+        rs.close();
+        ps.close();
+    }
 }
