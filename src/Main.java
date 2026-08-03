@@ -17,7 +17,7 @@ public class Main {
             ps.executeUpdate();
             ps.close();
         } catch (Exception e) {
-            // Ignore
+            System.out.println(e);
         }
     }
 
