@@ -4,18 +4,6 @@ import java.util.*;
 public class QueueManager {
     Queue<Appointment> queue = new PriorityQueue<>();
 
-    public void generateToken() throws Exception {
-        if (DBConnection.conn == null || DBConnection.conn.isClosed()) {
-            DBConnection.initialize();
-        }
-        CallableStatement stmt = DBConnection.conn.prepareCall("{? = call GenerateQueueToken()}");
-        stmt.registerOutParameter(1, Types.INTEGER);
-        stmt.execute();
-        int token = stmt.getInt(1);
-        stmt.close();
-        System.out.println("🎟️ Generated Queue Token Number: " + token);
-    }
-
     public void addPatient() throws Exception {
         Scanner sc = new Scanner(System.in);
         System.out.println("\n🚦 --- Add Patient to Queue ---");

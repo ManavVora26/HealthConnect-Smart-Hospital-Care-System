@@ -4,38 +4,33 @@ import java.util.LinkedList;
 import java.util.Scanner;
 
 public class MedicalRecord {
-    static class RecordEntry {
-        int historyId;
-        String disease;
-        String description;
+    public int historyId;
+    public int patientId;
+    public String disease = "";
+    public String description = "";
 
-        public RecordEntry(int historyId, String disease, String description) {
-            this.historyId = historyId;
-            this.disease = disease;
-            this.description = description;
-        }
+    public MedicalRecord() {}
+
+    public MedicalRecord(int historyId, int patientId, String disease, String description) {
+        this.historyId = historyId;
+        this.patientId = patientId;
+        this.disease = disease;
+        this.description = description;
     }
-
-    LinkedList<RecordEntry> recordList = new LinkedList<>();
-
-    Patient patient = new Patient();
-    String diagnosis = "";
-    String allergies = "";
-    String history = "";
 
     public void addRecord() throws Exception {
         Scanner sc = new Scanner(System.in);
         System.out.println("\n📋 --- Add Medical Record ---");
 
-        int patientId = 0;
+        int pId = 0;
         if (Main.loggedInUser instanceof Patient) {
-            patientId = ((Patient) Main.loggedInUser).getPatientId();
+            pId = ((Patient) Main.loggedInUser).getPatientId();
         } else {
             while (true) {
                 System.out.print("👉 Enter Patient ID: ");
                 try {
-                    patientId = Integer.parseInt(sc.nextLine().trim());
-                    if (patientId > 0) {
+                    pId = Integer.parseInt(sc.nextLine().trim());
+                    if (pId > 0) {
                         break;
                     }
                     System.out.println("⚠️ Error: Patient ID must be a positive integer.");
@@ -46,7 +41,7 @@ public class MedicalRecord {
         }
 
         System.out.print("🦠 Enter Disease/Diagnosis: ");
-        String disease = sc.nextLine();
+        String dis = sc.nextLine();
         System.out.print("📝 Enter Description/Notes: ");
         String desc = sc.nextLine();
 
@@ -54,14 +49,11 @@ public class MedicalRecord {
             DBConnection.initialize();
         }
         CallableStatement stmt = DBConnection.conn.prepareCall("{call AddMedicalRecord(?, ?, ?)}");
-        stmt.setInt(1, patientId);
-        stmt.setString(2, disease);
+        stmt.setInt(1, pId);
+        stmt.setString(2, dis);
         stmt.setString(3, desc);
         stmt.execute();
         stmt.close();
-
-        recordList.addLast(new RecordEntry(0, disease, desc));
-
         System.out.println("✅ Medical record added successfully.");
         Main.logActivity(1, "INSERT", "medical_history");
     }
@@ -70,12 +62,12 @@ public class MedicalRecord {
         Scanner sc = new Scanner(System.in);
         System.out.println("\n⚙️ --- Update Medical Record ---");
 
-        int historyId = 0;
+        int hId = 0;
         while (true) {
             System.out.print("👉 Enter History ID: ");
             try {
-                historyId = Integer.parseInt(sc.nextLine().trim());
-                if (historyId > 0) {
+                hId = Integer.parseInt(sc.nextLine().trim());
+                if (hId > 0) {
                     break;
                 }
                 System.out.println("⚠️ Error: History ID must be a positive integer.");
@@ -91,25 +83,46 @@ public class MedicalRecord {
             DBConnection.initialize();
         }
         CallableStatement stmt = DBConnection.conn.prepareCall("{call UpdateMedicalRecord(?, ?)}");
-        stmt.setInt(1, historyId);
+        stmt.setInt(1, hId);
         stmt.setString(2, desc);
         stmt.execute();
         stmt.close();
         System.out.println("✅ Medical record updated successfully.");
     }
 
+    public LinkedList<MedicalRecord> fetchMedicalHistoryList(int targetPatientId) throws Exception {
+        LinkedList<MedicalRecord> historyLinkedList = new LinkedList<>();
+        if (DBConnection.conn == null || DBConnection.conn.isClosed()) {
+            DBConnection.initialize();
+        }
+        CallableStatement stmt = DBConnection.conn.prepareCall("{call ViewMedicalRecord(?)}");
+        stmt.setInt(1, targetPatientId);
+        ResultSet rs = stmt.executeQuery();
+        while (rs.next()) {
+            historyLinkedList.add(new MedicalRecord(
+                    rs.getInt("history_id"),
+                    targetPatientId,
+                    rs.getString("disease"),
+                    rs.getString("description")
+            ));
+        }
+        rs.close();
+        stmt.close();
+        return historyLinkedList;
+    }
+
     public void viewRecord() throws Exception {
         Scanner sc = new Scanner(System.in);
 
-        int patientId = 0;
+        int targetPatientId = 0;
         if (Main.loggedInUser instanceof Patient) {
-            patientId = ((Patient) Main.loggedInUser).getPatientId();
+            targetPatientId = ((Patient) Main.loggedInUser).getPatientId();
         } else {
             while (true) {
                 System.out.print("👉 Enter Patient ID to view records: ");
                 try {
-                    patientId = Integer.parseInt(sc.nextLine().trim());
-                    if (patientId > 0) {
+                    targetPatientId = Integer.parseInt(sc.nextLine().trim());
+                    if (targetPatientId > 0) {
                         break;
                     }
                     System.out.println("⚠️ Error: Patient ID must be a positive integer.");
@@ -119,35 +132,20 @@ public class MedicalRecord {
             }
         }
 
-        if (DBConnection.conn == null || DBConnection.conn.isClosed()) {
-            DBConnection.initialize();
-        }
-        CallableStatement stmt = DBConnection.conn.prepareCall("{call ViewMedicalRecord(?)}");
-        stmt.setInt(1, patientId);
-        ResultSet rs = stmt.executeQuery();
+        // Populate in-memory LinkedList data structure from Database
+        LinkedList<MedicalRecord> historyList = fetchMedicalHistoryList(targetPatientId);
 
-        recordList.clear();
-        while (rs.next()) {
-            recordList.addLast(new RecordEntry(
-                    rs.getInt("history_id"),
-                    rs.getString("disease"),
-                    rs.getString("description")
-            ));
-        }
-        rs.close();
-        stmt.close();
-
-        System.out.println("\n📋 --- Medical History Records for Patient ID " + patientId + " ---");
-        boolean found = false;
-        for (RecordEntry rec : recordList) {
-            found = true;
-            System.out.println("🔑 History ID       : " + rec.historyId);
-            System.out.println("🦠 Disease/Diagnosis: " + rec.disease);
-            System.out.println("📝 Description      : " + rec.description);
-            System.out.println("--------------------------------------------------");
-        }
-        if (!found) {
+        System.out.println("\n📋 --- Medical History Records (Traversing LinkedList) for Patient ID " + targetPatientId + " ---");
+        if (historyList.isEmpty()) {
             System.out.println("📭 No medical history records found.");
+        } else {
+            // Traversal across the LinkedList nodes
+            for (MedicalRecord rec : historyList) {
+                System.out.println("🔑 History ID       : " + rec.historyId);
+                System.out.println("🦠 Disease/Diagnosis: " + rec.disease);
+                System.out.println("📝 Description      : " + rec.description);
+                System.out.println("--------------------------------------------------");
+            }
         }
     }
 }
