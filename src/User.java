@@ -18,7 +18,7 @@ public class User {
 
     public void login() throws Exception {
         Scanner sc = new Scanner(System.in);
-        System.out.print("📧 Enter Email/Username: ");
+        System.out.print("📧 Enter Username: ");
         String username = sc.nextLine().trim();
         System.out.print("🔑 Enter Password: ");
         String pwd = sc.nextLine();
@@ -52,7 +52,7 @@ public class User {
 
             Main.logActivity(this.userId, "LOGIN", "users");
         } else {
-            System.out.println("❌ Invalid email/username or password.");
+            System.out.println("❌ Invalid username or password.");
         }
         rs.close();
         stmt.close();
@@ -149,12 +149,6 @@ public class User {
         }
         DBConnection.conn.setAutoCommit(false);
         try {
-            // Update username in users table
-            PreparedStatement ps = DBConnection.conn.prepareStatement("UPDATE users SET username = ? WHERE user_id = ?");
-            ps.setString(1, newEmail);
-            ps.setInt(2, this.userId);
-            ps.executeUpdate();
-            ps.close();
 
             // Update respective table based on role
             if (this.role.equalsIgnoreCase("Patient")) {
