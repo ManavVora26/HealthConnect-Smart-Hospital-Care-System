@@ -133,11 +133,11 @@ public class User {
 
         String newEmail = "";
         while (true) {
-            System.out.print("📧 Enter New Email/Username: ");
+            System.out.print("📧 Enter New Email: ");
             newEmail = sc.nextLine().trim();
             int atIndex = newEmail.indexOf('@');
             int dotIndex = newEmail.lastIndexOf('.');
-            boolean isValid = (atIndex > 0 && dotIndex > atIndex + 1 && dotIndex < newEmail.length() - 1);
+            boolean isValid = (!newEmail.isEmpty() && atIndex > 0 && dotIndex > atIndex + 1 && dotIndex < newEmail.length() - 1);
             if (isValid) {
                 break;
             }
@@ -158,17 +158,20 @@ public class User {
 
             // Update respective table based on role
             if (this.role.equalsIgnoreCase("Patient")) {
-                PreparedStatement ps1 = DBConnection.conn.prepareStatement("UPDATE patients SET first_name = ?, phone = ? WHERE user_id = ?");
+                PreparedStatement ps1 = DBConnection.conn.prepareStatement("UPDATE patients SET first_name = ?, phone = ?, email = ? WHERE user_id = ?");
                 ps1.setString(1, newName);
                 ps1.setString(2, newPhone);
-                ps1.setInt(3, this.userId);
+                ps1.setString(3, newEmail);
+                ps1.setInt(4, this.userId);
                 ps1.executeUpdate();
                 ps1.close();
             } else if (this.role.equalsIgnoreCase("Doctor")) {
-                PreparedStatement ps2 = DBConnection.conn.prepareStatement("UPDATE doctors SET name = ?, phone = ? WHERE user_id = ?");
+                PreparedStatement ps2 = DBConnection.conn.prepareStatement("UPDATE doctors SET name = ?, phone = ?, email = ? WHERE user_id = ?");
                 ps2.setString(1, newName);
                 ps2.setString(2, newPhone);
-                ps2.setInt(3, this.userId);
+                ps2.setString(3, newEmail);
+                ps2.setInt(4, this.userId);
+                ps2.executeUpdate();
                 ps2.executeUpdate();
                 ps2.close();
             }
@@ -206,6 +209,11 @@ public class User {
 
         if (newPwd.trim().isEmpty()) {
             System.out.println("⚠️ New password cannot be empty.");
+            return;
+        }
+
+        if (oldPwd.equals(newPwd)) {
+            System.out.println("⚠️ Error: New password cannot be the same as the old password.");
             return;
         }
 

@@ -1,7 +1,5 @@
-import java.sql.CallableStatement;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.util.Scanner;
+import java.sql.*;
+import java.util.*;
 
 public class Patient extends User {
     String healthId = "";
@@ -122,6 +120,11 @@ public class Patient extends User {
                 }
             }
             if (isValid) {
+                java.time.LocalDate appLocalDate = java.time.LocalDate.parse(dateStr);
+                if (appLocalDate.isBefore(java.time.LocalDate.now())) {
+                    System.out.println("⚠️ Error: Appointment date cannot be in the past. Please enter today's date or a future date.");
+                    continue;
+                }
                 break;
             }
             System.out.println("⚠️ Error: Date must be a valid calendar date in YYYY-MM-DD format.");
