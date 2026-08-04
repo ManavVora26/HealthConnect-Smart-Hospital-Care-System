@@ -367,6 +367,24 @@ public class Patient extends User {
                 System.out.println("🩺 Token Being Treated: None (No patient is currently in treatment)");
             }
 
+            // Check if patient has already been served today
+            PreparedStatement psServedCheck = DBConnection.conn.prepareStatement(
+                    "SELECT queue_id FROM queue WHERE patient_id = ? AND doctor_id = ? AND status = 'Served' LIMIT 1"
+            );
+            psServedCheck.setInt(1, patientId);
+            psServedCheck.setInt(2, doctorId);
+            ResultSet rsServedCheck = psServedCheck.executeQuery();
+            boolean isServedToday = rsServedCheck.next();
+            rsServedCheck.close();
+            psServedCheck.close();
+
+            if (isServedToday) {
+                System.out.println("🎉 Status: You have already been served by the doctor today.");
+                System.out.println("⏰ Estimated Waiting Time: 0 minutes");
+                System.out.println("----------------------------------------------");
+                return;
+            }
+
             // 3. How much left before me in queue
             // Check if patient is in active queue
             PreparedStatement psQueue = DBConnection.conn.prepareStatement(
